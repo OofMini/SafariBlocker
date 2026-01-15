@@ -3,7 +3,7 @@
 //  Bagel
 //
 //  Created by Chris Barker on 25/07/2020.
-//  Copyright © 2020 Cocoa-Cabana Code Ltd. All rights reserved.
+//  Updated for Modern iOS
 //
 
 #import <UIKit/UIKit.h>

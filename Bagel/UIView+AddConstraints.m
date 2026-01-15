@@ -3,7 +3,7 @@
 //  Bagel
 //
 //  Created by Chris Barker on 25/07/2020.
-//  Copyright © 2020 Cocoa-Cabana Code Ltd. All rights reserved.
+//  Updated for Modern Auto Layout
 //
 
 #import "UIView+AddConstraints.h"
@@ -11,61 +11,29 @@
 @implementation UIView (AddConstraints)
 
 -(void)addConstraintsTo:(UIView *)view withLeading:(CGFloat)leading withTrailing:(CGFloat)trailing withTop:(CGFloat)top withBottom:(CGFloat)bottom {
-
-//    let constraint = NSLayoutConstraint(item: view, attribute: .leading, relatedBy: .equal, toItem: self, attribute: .leading, multiplier: 1, constant: leading)
-
+    
+    // Ensure the view is prepared for Auto Layout
+    view.translatesAutoresizingMaskIntoConstraints = NO;
+    
+    NSMutableArray *constraints = [NSMutableArray array];
+    
     if (leading != 0.0) {
-        NSLayoutConstraint *leadingConstraint = [NSLayoutConstraint
-                                                 constraintWithItem:view
-                                                 attribute:NSLayoutAttributeLeading
-                                                 relatedBy:NSLayoutRelationEqual
-                                                 toItem:self
-                                                 attribute:NSLayoutAttributeLeading
-                                                 multiplier:1.0
-                                                 constant:leading];
-
-        [self addConstraint:leadingConstraint];
+        [constraints addObject:[view.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:leading]];
     }
-
+    
     if (trailing != 0.0) {
-        NSLayoutConstraint *trailingConstraint = [NSLayoutConstraint
-                                                  constraintWithItem:view
-                                                  attribute:NSLayoutAttributeTrailing
-                                                  relatedBy:NSLayoutRelationEqual
-                                                  toItem:self
-                                                  attribute:NSLayoutAttributeTrailing
-                                                  multiplier:1.0
-                                                  constant:trailing];
-
-        [self addConstraint:trailingConstraint];
+        [constraints addObject:[view.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:trailing]];
     }
-
+    
     if (top != 0.0) {
-        NSLayoutConstraint *topConstraint = [NSLayoutConstraint
-                                             constraintWithItem:view
-                                             attribute:NSLayoutAttributeTop
-                                             relatedBy:NSLayoutRelationEqual
-                                             toItem:self
-                                             attribute:NSLayoutAttributeTop
-                                             multiplier:1.0
-                                             constant:top];
-
-        [self addConstraint:topConstraint];
+        [constraints addObject:[view.topAnchor constraintEqualToAnchor:self.topAnchor constant:top]];
     }
-
+    
     if (bottom != 0.0) {
-        NSLayoutConstraint *bottomConstraint = [NSLayoutConstraint
-                                                constraintWithItem:view
-                                                attribute:NSLayoutAttributeBottom
-                                                relatedBy:NSLayoutRelationEqual
-                                                toItem:self
-                                                attribute:NSLayoutAttributeBottom
-                                                multiplier:1.0
-                                                constant:bottom];
-
-        [self addConstraint:bottomConstraint];
+        [constraints addObject:[view.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:bottom]];
     }
-
+    
+    [NSLayoutConstraint activateConstraints:constraints];
 }
 
 @end

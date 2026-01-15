@@ -3,6 +3,9 @@ name: Build SafariBlocker
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-latest
@@ -20,24 +23,24 @@ jobs:
 
     - name: Install Theos
       run: |
-        # Manually clone Theos to avoid API rate limits
         git clone --recursive https://github.com/theos/theos.git $HOME/theos
 
     - name: Install SDKs
       run: |
-        # Remove the empty sdks folder created by Theos setup
         rm -rf $HOME/theos/sdks
-        
-        # Clone the official SDKs repo directly (Reliable & Fast)
         git clone --depth 1 https://github.com/theos/sdks.git $HOME/theos/sdks
 
     - name: Build Rootless Package
       run: |
-        # Build using the 'latest' SDK found in the folder we just cloned
         make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
         
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
+    - name: Create Draft Release
+      uses: softprops/action-gh-release@v1
       with:
-        name: SafariBlocker-Rootless
-        path: packages/*.deb
+        files: packages/*.deb
+        name: "SafariBlocker (Rootless) - ${{ github.run_number }}"
+        tag_name: "v1.3.0-build-${{ github.run_number }}"
+        draft: true
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

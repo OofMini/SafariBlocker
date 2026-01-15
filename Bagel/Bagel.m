@@ -3,13 +3,13 @@
 //  Bagel
 //
 //  Created by Chris Barker on 25/07/2020.
-//  Copyright © 2020 Cocoa-Cabana Code Ltd. All rights reserved.
+//  Updated for iOS 15/16
 //
 
 #import "Bagel.h"
 #import "UIView+AddConstraints.h"
 
-// MARK: Mesage Object
+// MARK: Message Object
 
 @interface Message: NSObject
 @property NSString *message;
@@ -30,7 +30,7 @@
 }
 @end
 
-// MARK: Bagel (tasty 😋)
+// MARK: Bagel (tasty 🥯)
 
 @implementation Bagel
 
@@ -94,7 +94,7 @@ bool baking;
         viewToAdd = [self getKeyView];
     }
 
-    // Setup UIView 🥯
+    // Setup UIView 🍞
     UIView *bagelView = [[UIView alloc]init];
     [bagelView setBackgroundColor:[_backgroundColor colorWithAlphaComponent:0.98]];
     [bagelView setAlpha:0.0];
@@ -134,11 +134,32 @@ bool baking;
 
 }
 
--(UIView *)getKeyView{
+-(UIView *)getKeyView {
+    // iOS 13+ / 15+ Scene Support
+    // We iterate over connected scenes to find the active foreground scene
+    for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+        if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            // Find the key window in this scene
+            for (UIWindow *window in windowScene.windows) {
+                if (window.isKeyWindow) {
+                    return window;
+                }
+            }
+        }
+    }
+    
+    // Fallback for older iOS or if no scene matches
     UIWindow *topWindow = [[[UIApplication sharedApplication].windows sortedArrayUsingComparator:^NSComparisonResult(UIWindow *firstWindow, UIWindow *secondWindow) {
         return firstWindow.windowLevel - secondWindow.windowLevel;
     }] lastObject];
-    return [[topWindow subviews] lastObject];
+    
+    // If we have subviews, return the last one (often the top view controller's view)
+    if (topWindow.subviews.count > 0) {
+        return [[topWindow subviews] lastObject];
+    }
+    
+    return topWindow;
 }
 
 @end

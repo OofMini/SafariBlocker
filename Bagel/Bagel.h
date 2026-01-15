@@ -3,7 +3,7 @@
 //  Bagel
 //
 //  Created by Chris Barker on 25/07/2020.
-//  Copyright © 2020 Cocoa-Cabana Code Ltd. All rights reserved.
+//  Updated for Modern iOS
 //
 
 #import <Foundation/Foundation.h>
@@ -13,19 +13,19 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface Bagel : NSObject
 
-+ (Bagel *) shared;
++ (Bagel *)shared;
 
-@property CGFloat speed;
-@property CGFloat wait;
-@property UIColor *textColor;
-@property UIColor *backgroundColor;
-@property NSInteger lineCount;
-@property UIFont *font;
-@property NSTextAlignment textAlignment;
-@property CGFloat bottomConstraint;
+@property (nonatomic, assign) CGFloat speed;
+@property (nonatomic, assign) CGFloat wait;
+@property (nonatomic, strong) UIColor *textColor;
+@property (nonatomic, strong) UIColor *backgroundColor;
+@property (nonatomic, assign) NSInteger lineCount;
+@property (nonatomic, strong) UIFont *font;
+@property (nonatomic, assign) NSTextAlignment textAlignment;
+@property (nonatomic, assign) CGFloat bottomConstraint;
 
-NS_ASSUME_NONNULL_END
-
--(void)pop:(UIView * _Nullable) view withMessage:(NSString * _Nonnull) message;
+-(void)pop:(UIView * _Nullable)view withMessage:(NSString * _Nonnull)message;
 
 @end
+
+NS_ASSUME_NONNULL_END

@@ -38,7 +38,6 @@
 
 // MARK: - Helper Functions
 
-// Critical for iPad: Finds the correct toolbar to anchor the popover
 static _SFToolbar* activeToolbarOrToolbarForBarItemForBrowserRootViewController(BrowserRootViewController* rootVC, NSInteger barItem) {
     if(!rootVC) return nil;
 
@@ -78,7 +77,6 @@ static NSString* removeJunkFromSpecifier(NSString* urlString) {
 #define prefFilePath [NSString stringWithFormat:@"%@/Library/Preferences/com.p2kdev.safariblocker.plist", NSHomeDirectory()]
 
 static BOOL skipNextTabOpen = NO;
-// Optimization: Use Sets for O(1) lookup performance
 static NSMutableSet * blockedURLs;
 static NSMutableSet * blockedDomains;
 static NSMutableSet * allowedDomains;
@@ -112,7 +110,7 @@ static bool showBagelMenu = YES;
         NSString *resourceSpecifier = [originalURL resourceSpecifier];
         NSString *URLWithoutJunk = removeJunkFromSpecifier(resourceSpecifier);
 
-        // 1. Whitelist Check (O(1))
+        // 1. Whitelist Check
         if ([allowedDomains containsObject:domainForURL]) {
             %orig;
             return;
@@ -123,13 +121,13 @@ static bool showBagelMenu = YES;
             [[Bagel shared] pop:rootVC.view withMessage:msg];
         };
 
-        // 2. Blocked Domain Check (O(1))
+        // 2. Blocked Domain Check
         if ([blockedDomains containsObject:domainForURL]) {
             if (showBagelMenu) showToast([NSString stringWithFormat:@"Blocked pop-up from Domain:\n%@", domainForURL]);
             return;
         }
 
-        // 3. Blocked URL Check (O(1))
+        // 3. Blocked URL Check
         if ([blockedURLs containsObject:URLWithoutJunk]) {
             if (showBagelMenu) showToast([NSString stringWithFormat:@"Blocked pop-up from URL:\n%@", URLWithoutJunk]);
             return;
@@ -198,7 +196,6 @@ static bool showBagelMenu = YES;
     NSMutableDictionary *defaults = [NSMutableDictionary dictionary];
     [defaults addEntriesFromDictionary:[NSDictionary dictionaryWithContentsOfFile:prefFilePath]];
     
-    // We update the local sets immediately for responsiveness
     switch(action) {
         case 1:
             [allowedDomains addObject:content];
@@ -217,7 +214,6 @@ static bool showBagelMenu = YES;
 }
 %end
 
-// Hook context menus "Open in New Tab"
 typedef void (^UIActionHandler)(__kindof UIAction *action);
 @interface UIAction (Private)
 @property (nonatomic, copy) UIActionHandler handler;
@@ -245,7 +241,6 @@ static void updatePrefs() {
     
     showBagelMenu = [prefs objectForKey:@"showBagelMenu"] ? [[prefs objectForKey:@"showBagelMenu"] boolValue] : YES;
 
-    // Convert arrays to MutableSets for performance
     blockedURLs = [NSMutableSet setWithArray:[blacklistUrlStr componentsSeparatedByString:@";"]];
     blockedDomains = [NSMutableSet setWithArray:[blacklistDomStr componentsSeparatedByString:@";"]];
     allowedDomains = [NSMutableSet setWithArray:[whitelistStr componentsSeparatedByString:@";"]];

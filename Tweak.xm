@@ -38,29 +38,28 @@
 
 // MARK: - Helper Functions
 
-// Helper to find the active toolbar (Critical for preventing iPad crashes)
+// Critical for iPad: Finds the correct toolbar to anchor the popover
 static _SFToolbar* activeToolbarOrToolbarForBarItemForBrowserRootViewController(BrowserRootViewController* rootVC, NSInteger barItem) {
     if(!rootVC) return nil;
 
     if([rootVC.bottomToolbar.barRegistration containsBarItem:barItem]) {
         return rootVC.bottomToolbar;
-    } else {
-        if([rootVC.navigationBar respondsToSelector:@selector(_toolbarForBarItem:)]) {
-            return [rootVC.navigationBar _toolbarForBarItem:barItem];
-        } else {
-            // Fallback for older/different layouts
-            _SFToolbar* leadingToolbar = [rootVC.navigationBar valueForKey:@"_leadingToolbar"];
-            _SFToolbar* trailingToolbar = [rootVC.navigationBar valueForKey:@"_trailingToolbar"];
-
-            if([leadingToolbar.barRegistration containsBarItem:barItem]) return (BrowserToolbar*)leadingToolbar;
-            if([trailingToolbar.barRegistration containsBarItem:barItem]) return (BrowserToolbar*)trailingToolbar;
-
-            return nil;
-        }
+    } 
+    
+    if([rootVC.navigationBar respondsToSelector:@selector(_toolbarForBarItem:)]) {
+        return [rootVC.navigationBar _toolbarForBarItem:barItem];
     }
+    
+    // Fallback for older iOS versions
+    _SFToolbar* leadingToolbar = [rootVC.navigationBar valueForKey:@"_leadingToolbar"];
+    _SFToolbar* trailingToolbar = [rootVC.navigationBar valueForKey:@"_trailingToolbar"];
+
+    if([leadingToolbar.barRegistration containsBarItem:barItem]) return (BrowserToolbar*)leadingToolbar;
+    if([trailingToolbar.barRegistration containsBarItem:barItem]) return (BrowserToolbar*)trailingToolbar;
+
+    return nil;
 }
 
-// Clean URL parsing using NSURL (More robust than string replacement)
 static NSString* removeJunk(NSString* urlString) {
     if (!urlString) return @"";
     NSURL *url = [NSURL URLWithString:urlString];
@@ -76,20 +75,19 @@ static NSString* removeJunkFromSpecifier(NSString* urlString) {
      return [[urlString stringByReplacingOccurrencesOfString:@"www." withString:@""] lowercaseString];
 }
 
-// Preference Path (Sandboxed for iOS 15+)
 #define prefFilePath [NSString stringWithFormat:@"%@/Library/Preferences/com.p2kdev.safariblocker.plist", NSHomeDirectory()]
 
 static BOOL skipNextTabOpen = NO;
-static NSMutableArray * blockedURLs;
-static NSMutableArray * blockedDomains;
-static NSMutableArray * allowedDomains;
+// Optimization: Use Sets for O(1) lookup performance
+static NSMutableSet * blockedURLs;
+static NSMutableSet * blockedDomains;
+static NSMutableSet * allowedDomains;
 static bool showBagelMenu = YES;
 
 // MARK: - Hooks
 
 %hook TabController
 
-// Hook used in the fork (stable for iOS 15 without libundirect)
 - (void)insertTab:(id)tabDocument afterTab:(id)afterTab inBackground:(BOOL)inBackground animated:(BOOL)animated {
     
     if(skipNextTabOpen) {
@@ -103,7 +101,7 @@ static bool showBagelMenu = YES;
         originalTab = MSHookIvar<TabDocument*>(tabDocument,"_parentTabDocumentForBackClosesSpawnedTab");
     }
     @catch(NSException* ex) {
-        NSLog(@"[SafariBlocker] Error fetching parentTab: %@", ex.reason);
+        // Fail silently if ivar is missing
     }
 
     LoadingController* loadingController = [originalTab valueForKey:@"_loadingController"];
@@ -114,33 +112,30 @@ static bool showBagelMenu = YES;
         NSString *resourceSpecifier = [originalURL resourceSpecifier];
         NSString *URLWithoutJunk = removeJunkFromSpecifier(resourceSpecifier);
 
-        // 1. Check Whitelist
+        // 1. Whitelist Check (O(1))
         if ([allowedDomains containsObject:domainForURL]) {
             %orig;
             return;
         }
 
-        // Helper block to show toast
         void (^showToast)(NSString*) = ^(NSString *msg) {
             UIViewController* rootVC = [[self valueForKey:@"_browserController"] valueForKey:@"_rootViewController"];
             [[Bagel shared] pop:rootVC.view withMessage:msg];
         };
 
-        // 2. Check Blocked Domains
+        // 2. Blocked Domain Check (O(1))
         if ([blockedDomains containsObject:domainForURL]) {
-            if (showBagelMenu) showToast([NSString stringWithFormat:@"Blocked pop-up from Domain - \n %@", domainForURL]);
+            if (showBagelMenu) showToast([NSString stringWithFormat:@"Blocked pop-up from Domain:\n%@", domainForURL]);
             return;
         }
 
-        // 3. Check Blocked URLs
-        for (NSString *tempURL in blockedURLs) {
-            if ([tempURL isEqualToString:URLWithoutJunk]) {
-                if (showBagelMenu) showToast([NSString stringWithFormat:@"Blocked pop-up from URL - \n %@", URLWithoutJunk]);
-                return;
-            }
+        // 3. Blocked URL Check (O(1))
+        if ([blockedURLs containsObject:URLWithoutJunk]) {
+            if (showBagelMenu) showToast([NSString stringWithFormat:@"Blocked pop-up from URL:\n%@", URLWithoutJunk]);
+            return;
         }
 
-        // 4. Ask User
+        // 4. Action Sheet
         NSString *msg = [NSString stringWithFormat:@"Action required:\nDomain: %@\nURL: %@", domainForURL, URLWithoutJunk];
         UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"SafariBlocker"
                                                                        message:msg
@@ -171,7 +166,7 @@ static bool showBagelMenu = YES;
         [alert addAction:blockURL];
         [alert addAction:cancelAction];
 
-        // Present logic (iPad Popover Fix)
+        // iPad Popover Logic
         BrowserRootViewController* rootVC = [[self valueForKey:@"_browserController"] valueForKey:@"_rootViewController"];
         _SFToolbar* activeToolbar = activeToolbarOrToolbarForBarItemForBrowserRootViewController(rootVC, 5); // 5 = TabExposeItem
         
@@ -202,26 +197,27 @@ static bool showBagelMenu = YES;
     
     NSMutableDictionary *defaults = [NSMutableDictionary dictionary];
     [defaults addEntriesFromDictionary:[NSDictionary dictionaryWithContentsOfFile:prefFilePath]];
-
+    
+    // We update the local sets immediately for responsiveness
     switch(action) {
-        case 1: // Whitelist
+        case 1:
             [allowedDomains addObject:content];
-            [defaults setObject:[allowedDomains componentsJoinedByString:@";"] forKey:@"allowedDomains"];
+            [defaults setObject:[[allowedDomains allObjects] componentsJoinedByString:@";"] forKey:@"allowedDomains"];
             break;
-        case 2: // Block Domain
+        case 2:
             [blockedDomains addObject:content];
-            [defaults setObject:[blockedDomains componentsJoinedByString:@";"] forKey:@"blockedDomains"];
+            [defaults setObject:[[blockedDomains allObjects] componentsJoinedByString:@";"] forKey:@"blockedDomains"];
             break;
-        case 3: // Block URL
+        case 3:
             [blockedURLs addObject:content];
-            [defaults setObject:[blockedURLs componentsJoinedByString:@";"] forKey:@"blockedURLs"];
+            [defaults setObject:[[blockedURLs allObjects] componentsJoinedByString:@";"] forKey:@"blockedURLs"];
             break;
     }
     [defaults writeToFile:prefFilePath atomically:YES];
 }
 %end
 
-// Hook to handle "Open in New Tab" from context menus gracefully
+// Hook context menus "Open in New Tab"
 typedef void (^UIActionHandler)(__kindof UIAction *action);
 @interface UIAction (Private)
 @property (nonatomic, copy) UIActionHandler handler;
@@ -240,8 +236,6 @@ typedef void (^UIActionHandler)(__kindof UIAction *action);
 }
 %end
 
-// MARK: - Preferences Loader
-
 static void updatePrefs() {
     NSMutableDictionary *prefs = [[NSMutableDictionary alloc] initWithContentsOfFile:prefFilePath];
     
@@ -251,9 +245,10 @@ static void updatePrefs() {
     
     showBagelMenu = [prefs objectForKey:@"showBagelMenu"] ? [[prefs objectForKey:@"showBagelMenu"] boolValue] : YES;
 
-    blockedURLs = [[blacklistUrlStr componentsSeparatedByString:@";"] mutableCopy];
-    blockedDomains = [[blacklistDomStr componentsSeparatedByString:@";"] mutableCopy];
-    allowedDomains = [[whitelistStr componentsSeparatedByString:@";"] mutableCopy];
+    // Convert arrays to MutableSets for performance
+    blockedURLs = [NSMutableSet setWithArray:[blacklistUrlStr componentsSeparatedByString:@";"]];
+    blockedDomains = [NSMutableSet setWithArray:[blacklistDomStr componentsSeparatedByString:@";"]];
+    allowedDomains = [NSMutableSet setWithArray:[whitelistStr componentsSeparatedByString:@";"]];
     
     [blockedURLs removeObject:@""];
     [blockedDomains removeObject:@""];

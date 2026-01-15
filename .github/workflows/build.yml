@@ -13,14 +13,29 @@ jobs:
       with:
         submodules: recursive
 
+    - name: Install Dependencies
+      run: |
+        brew install ldid
+        echo "THEOS=~/theos" >> $GITHUB_ENV
+
     - name: Install Theos
       run: |
-        bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
-        echo "THEOS=~/theos" >> $GITHUB_ENV
+        # Manually clone Theos to avoid API rate limits
+        git clone --recursive https://github.com/theos/theos.git $HOME/theos
+
+    - name: Install SDKs
+      run: |
+        # Download iOS 16.5 SDK (supports compiling for iOS 15+)
+        curl -L -o $HOME/theos/sdks/iPhoneOS16.5.sdk.tar.xz https://github.com/theos/sdks/releases/download/16.5-12d4e/iPhoneOS16.5.sdk.tar.xz
+        
+        # Extract safely
+        tar -xf $HOME/theos/sdks/iPhoneOS16.5.sdk.tar.xz -C $HOME/theos/sdks/
+        rm $HOME/theos/sdks/iPhoneOS16.5.sdk.tar.xz
 
     - name: Build Rootless Package
       run: |
-        make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+        # Force use of the downloaded SDK
+        make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless SDKVERSION=16.5
         
     - name: Upload Artifact
       uses: actions/upload-artifact@v4

@@ -2,11 +2,6 @@
 #import <Preferences/PSListController.h>
 #include <objc/runtime.h>
 
-// Define interface for PSTextFieldSpecifier to expose setPlaceholder
-@interface PSTextFieldSpecifier : PSSpecifier
-- (void)setPlaceholder:(NSString *)placeholder;
-@end
-
 @interface LSApplicationProxy : NSObject
 +(id)applicationProxyForIdentifier:(NSString *)bundleId;
 -(NSURL *)containerURL;
@@ -74,15 +69,15 @@ NSString *prefFilePath;
                 if ([currData length] == 0) continue;
                 NSString *newDataLabel = [NSString stringWithFormat:@"#%d", index];
                 
-                // Use the defined interface to allow setPlaceholder
-                PSTextFieldSpecifier *newData = (PSTextFieldSpecifier *)[PSSpecifier preferenceSpecifierNamed:newDataLabel target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:PSEditTextCell edit:nil];
-                
+                PSSpecifier *newData = [PSSpecifier preferenceSpecifierNamed:newDataLabel target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:PSEditTextCell edit:nil];
                 [newData setProperty:newDataLabel forKey:@"key"];
                 [newData setProperty:@"com.p2kdev.safariblocker.settingschanged" forKey:@"PostNotification"];
                 [newData setProperty:@YES forKey:@"enabled"];
                 
-                // Now works because we defined the method in the interface above
-                [newData setPlaceholder:@"Enter url/domain"];
+                // Cast to id to bypass compiler check for setPlaceholder
+                if ([newData respondsToSelector:@selector(setPlaceholder:)]) {
+                    [(id)newData setPlaceholder:@"Enter url/domain"];
+                }
                 
                 [_specifiers addObject:newData];
                 index++;
@@ -95,23 +90,21 @@ NSString *prefFilePath;
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     UITableViewCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
     
-    // Safely check for PSEditableTableCell
+    // Check if it's the editable cell class
     if ([cell isKindOfClass:objc_getClass("PSEditableTableCell")]) {
-        // Cast to 'id' to dynamically access 'textField' without header dependency issues
-        id editableCell = cell;
+        // Use Key-Value Coding (KVC) to access the textField. 
+        // This avoids compiler errors since we don't have the private header definition.
+        UITextField *textField = [cell valueForKey:@"textField"];
         
-        if ([editableCell respondsToSelector:@selector(textField)]) {
-            UITextField *textField = [editableCell textField];
-            if (textField) {
-                UIToolbar *keyboardDoneButtonView = [[UIToolbar alloc] init];
-                [keyboardDoneButtonView sizeToFit];
-                
-                UIBarButtonItem *flexBarButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
-                UIBarButtonItem *doneBarButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(dismissKeyboard:)];
-                
-                keyboardDoneButtonView.items = @[flexBarButton, doneBarButton];
-                textField.inputAccessoryView = keyboardDoneButtonView;
-            }
+        if (textField) {
+            UIToolbar *keyboardDoneButtonView = [[UIToolbar alloc] init];
+            [keyboardDoneButtonView sizeToFit];
+            
+            UIBarButtonItem *flexBarButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
+            UIBarButtonItem *doneBarButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(dismissKeyboard:)];
+            
+            keyboardDoneButtonView.items = @[flexBarButton, doneBarButton];
+            textField.inputAccessoryView = keyboardDoneButtonView;
         }
     }
     return cell;

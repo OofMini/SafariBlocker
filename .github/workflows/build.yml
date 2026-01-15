@@ -25,6 +25,9 @@ jobs:
 
     - name: Install SDKs
       run: |
+        # Remove the empty sdks folder created by Theos setup
+        rm -rf $HOME/theos/sdks
+        
         # Clone the official SDKs repo directly (Reliable & Fast)
         git clone --depth 1 https://github.com/theos/sdks.git $HOME/theos/sdks
 

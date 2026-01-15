@@ -1,7 +1,10 @@
 include $(THEOS)/makefiles/common.mk
-ARCHS= arm64 arm64e
-TARGET = iphone:clang:13.0:13.0
+
+ARCHS = arm64 arm64e
+TARGET = iphone:clang:latest:15.0
+
 BUNDLE_NAME = SafariBlocker
+
 SafariBlocker_FILES = SBRootListController.m
 SafariBlocker_INSTALL_PATH = /Library/PreferenceBundles
 SafariBlocker_FRAMEWORKS = UIKit

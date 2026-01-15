@@ -25,17 +25,13 @@ jobs:
 
     - name: Install SDKs
       run: |
-        # Download iOS 16.5 SDK (supports compiling for iOS 15+)
-        curl -L -o $HOME/theos/sdks/iPhoneOS16.5.sdk.tar.xz https://github.com/theos/sdks/releases/download/16.5-12d4e/iPhoneOS16.5.sdk.tar.xz
-        
-        # Extract safely
-        tar -xf $HOME/theos/sdks/iPhoneOS16.5.sdk.tar.xz -C $HOME/theos/sdks/
-        rm $HOME/theos/sdks/iPhoneOS16.5.sdk.tar.xz
+        # Clone the official SDKs repo directly (Reliable & Fast)
+        git clone --depth 1 https://github.com/theos/sdks.git $HOME/theos/sdks
 
     - name: Build Rootless Package
       run: |
-        # Force use of the downloaded SDK
-        make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless SDKVERSION=16.5
+        # Build using the 'latest' SDK found in the folder we just cloned
+        make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
         
     - name: Upload Artifact
       uses: actions/upload-artifact@v4

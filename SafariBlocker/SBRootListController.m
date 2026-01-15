@@ -1,8 +1,14 @@
 #import <Preferences/Preferences.h>
 #import <Preferences/PSListController.h>
-#import <Preferences/PSTextFieldSpecifier.h>
-#import <Preferences/PSEditableTableCell.h>
 #include <objc/runtime.h>
+
+// Fix for missing headers in standard SDKs
+@interface PSTextFieldSpecifier : PSSpecifier
+@end
+
+@interface PSEditableTableCell : UITableViewCell
+@property (nonatomic, readonly) UITextField *textField;
+@end
 
 @interface LSApplicationProxy : NSObject
 +(id)applicationProxyForIdentifier:(NSString *)bundleId;
@@ -70,7 +76,8 @@ NSString *prefFilePath;
             for (NSString *currData in self.dataList) {
                 if ([currData length] == 0) continue;
                 NSString *newDataLabel = [NSString stringWithFormat:@"#%d", index];
-                PSTextFieldSpecifier *newData = [PSTextFieldSpecifier preferenceSpecifierNamed:newDataLabel target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:PSEditTextCell edit:nil];
+                // Using PSSpecifier base class method which is safer
+                PSSpecifier *newData = [PSSpecifier preferenceSpecifierNamed:newDataLabel target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:PSEditTextCell edit:nil];
                 [newData setProperty:newDataLabel forKey:@"key"];
                 [newData setProperty:@"com.p2kdev.safariblocker.settingschanged" forKey:@"PostNotification"];
                 [newData setProperty:@YES forKey:@"enabled"];
@@ -83,7 +90,6 @@ NSString *prefFilePath;
     return _specifiers;
 }
 
-// Optimization: Add "Done" button to keyboard to allow dismissal
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     UITableViewCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
     

@@ -1,1 +1,7 @@
-{ Filter = { Bundles = ( "com.apple.mobilesafari"); }; }
+{
+    Filter = {
+        Bundles = (
+            "com.apple.mobilesafari"
+        );
+    };
+}

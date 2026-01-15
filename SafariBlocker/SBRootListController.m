@@ -1,6 +1,7 @@
 #import <Preferences/Preferences.h>
 #import <Preferences/PSListController.h>
 #import <Preferences/PSTextFieldSpecifier.h>
+#import <Preferences/PSEditableTableCell.h>
 #include <objc/runtime.h>
 
 @interface LSApplicationProxy : NSObject
@@ -24,7 +25,6 @@ NSString *prefFilePath;
 - (id)init {
     self = [super init];
     if (self) {
-        // Critical: Dynamic path resolution for Safari Container
         NSURL *containerURL = [[objc_getClass("LSApplicationProxy") applicationProxyForIdentifier:@"com.apple.mobilesafari"] containerURL];
         prefFilePath = [[containerURL path] stringByAppendingPathComponent:@"Library/Preferences/com.p2kdev.safariblocker.plist"];
     }
@@ -83,6 +83,30 @@ NSString *prefFilePath;
     return _specifiers;
 }
 
+// Optimization: Add "Done" button to keyboard to allow dismissal
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
+    
+    if ([cell isKindOfClass:objc_getClass("PSEditableTableCell")]) {
+        PSEditableTableCell *editableCell = (PSEditableTableCell *)cell;
+        if (editableCell.textField) {
+            UIToolbar *keyboardDoneButtonView = [[UIToolbar alloc] init];
+            [keyboardDoneButtonView sizeToFit];
+            
+            UIBarButtonItem *flexBarButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
+            UIBarButtonItem *doneBarButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(dismissKeyboard:)];
+            
+            keyboardDoneButtonView.items = @[flexBarButton, doneBarButton];
+            ((UITextField *)editableCell.textField).inputAccessoryView = keyboardDoneButtonView;
+        }
+    }
+    return cell;
+}
+
+- (void)dismissKeyboard:(id)sender {
+    [self.view endEditing:YES];
+}
+
 - (void)setPreferenceValue:(id)value specifier:(PSSpecifier*)specifier {
     NSMutableDictionary *defaults = [NSMutableDictionary dictionary];
     [defaults addEntriesFromDictionary:[NSDictionary dictionaryWithContentsOfFile:prefFilePath]];
@@ -108,6 +132,7 @@ NSString *prefFilePath;
 }
 
 - (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath { return YES; }
+
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
     if (editingStyle == UITableViewCellEditingStyleDelete) {
         [self.dataList removeObjectAtIndex:indexPath.row];

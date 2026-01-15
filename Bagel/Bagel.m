@@ -2,8 +2,7 @@
 //  Bagel.m
 //  Bagel
 //
-//  Created by Chris Barker on 25/07/2020.
-//  Updated for iOS 15 Scene Support
+//  Updated for iOS 15/16 + Code Cleanup
 //
 
 #import "Bagel.h"
@@ -17,9 +16,10 @@
 @implementation Message
 -(id)initWithMessage:(NSString *)message forView:(UIView *)view {
     self = [super init];
-    if( !self ) return nil;
-    _message = message;
-    _toView = view;
+    if (self) {
+        _message = message;
+        _toView = view;
+    }
     return self;
 }
 @end
@@ -29,7 +29,7 @@
 NSMutableArray *messages;
 bool baking;
 
-+ (Bagel *) shared {
++ (Bagel *)shared {
     static dispatch_once_t once;
     static Bagel *shared;
     dispatch_once(&once, ^{
@@ -49,42 +49,45 @@ bool baking;
         _bottomConstraint = -30.0;
         _speed = 0.4;
         _wait = 1.8;
-        messages = [[NSMutableArray alloc]init];
+        messages = [[NSMutableArray alloc] init];
     }
     return self;
 }
 
--(void)pop:(UIView * _Nullable) view withMessage:(NSString * _Nonnull) message {
-    Message *nextMessage = [[Message alloc]initWithMessage:message forView:view];
+-(void)pop:(UIView * _Nullable)view withMessage:(NSString * _Nonnull)message {
+    Message *nextMessage = [[Message alloc] initWithMessage:message forView:view];
     [messages addObject:nextMessage];
     [self sendMessage];
 }
 
 -(void)sendMessage {
     Message *nextMessage = messages.firstObject;
-    if (nextMessage == nil || [nextMessage.message isEqual: @""] || baking || messages.count == 0) {
+    if (!nextMessage || [nextMessage.message isEqualToString:@""] || baking || messages.count == 0) {
         return;
     }
-    [self makeBagel:nextMessage.toView withMessage:nextMessage.message withCompletion:^(bool complete) {
-        [messages removeObjectAtIndex:0];
-        [self sendMessage];
+
+    __weak typeof(self) weakSelf = self;
+    [self makeBagel:nextMessage.toView withMessage:nextMessage.message withCompletion:^(bool finished) {
+        if (messages.count > 0) {
+            [messages removeObjectAtIndex:0];
+        }
+        [weakSelf sendMessage];
     }];
 }
 
--(void)makeBagel:(UIView * _Nullable) view withMessage:(NSString * _Nonnull) message withCompletion:(void(^)(bool finished))completion {
+-(void)makeBagel:(UIView * _Nullable)view withMessage:(NSString * _Nonnull)message withCompletion:(void(^)(bool finished))completion {
     baking = true;
-    UIView *viewToAdd = view;
-    if (viewToAdd == nil) {
-        viewToAdd = [self getKeyView];
-    }
-
-    UIView *bagelView = [[UIView alloc]init];
+    
+    UIView *viewToAdd = view ?: [self getKeyView];
+    
+    // UI Setup
+    UIView *bagelView = [[UIView alloc] init];
     [bagelView setBackgroundColor:[_backgroundColor colorWithAlphaComponent:0.98]];
     [bagelView setAlpha:0.0];
     [bagelView.layer setCornerRadius:15];
     [bagelView setClipsToBounds:YES];
 
-    UILabel *textLabel = [[UILabel alloc]init];
+    UILabel *textLabel = [[UILabel alloc] init];
     [textLabel setTextColor:_textColor];
     [textLabel setTextAlignment:_textAlignment];
     [textLabel setText:message];
@@ -95,12 +98,11 @@ bool baking;
     [bagelView addSubview:textLabel];
     [viewToAdd addSubview:bagelView];
 
-    [textLabel setTranslatesAutoresizingMaskIntoConstraints:NO];
-    [bagelView setTranslatesAutoresizingMaskIntoConstraints:NO];
-
+    // Auto Layout
     [bagelView addConstraintsTo:textLabel withLeading:16 withTrailing:-16 withTop:16 withBottom:-16];
     [viewToAdd addConstraintsTo:bagelView withLeading:20 withTrailing:-20 withTop:0.0 withBottom:_bottomConstraint];
 
+    // Animations
     [UIView animateWithDuration:_speed delay:0.0 options:UIViewAnimationOptionCurveEaseInOut animations:^{
         [bagelView setAlpha:1.0];
     } completion:^(BOOL finished) {
@@ -109,13 +111,13 @@ bool baking;
         } completion:^(BOOL finished) {
             [bagelView removeFromSuperview];
             baking = false;
-            completion(true);
+            if (completion) completion(true);
         }];
     }];
 }
 
 -(UIView *)getKeyView {
-    // iOS 13+ / 15+ Scene Support (Fix for modern iOS)
+    // Modern iOS Scene support
     for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
         if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
             UIWindowScene *windowScene = (UIWindowScene *)scene;
@@ -124,7 +126,6 @@ bool baking;
             }
         }
     }
-    // Fallback
     return [[UIApplication sharedApplication].windows lastObject];
 }
 

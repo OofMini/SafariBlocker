@@ -4,7 +4,6 @@
 <dict>
 	<key>items</key>
 	<array>
-
 		<dict>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
@@ -32,7 +31,7 @@
 			<key>detail</key>
 			<string>PSListItemsController</string>
 			<key>label</key>
-			<string>Specify Whitelisted Domains...</string>
+			<string>Manage Whitelist...</string>
 			<key>action</key>
 			<string>launchAllowedDomainOptions</string>
 		</dict>
@@ -49,7 +48,7 @@
 			<key>detail</key>
 			<string>PSListItemsController</string>
 			<key>label</key>
-			<string>Specify Blocked Domains...</string>
+			<string>Manage Blocked Domains...</string>
 			<key>action</key>
 			<string>launchBlockedDomainOptions</string>
 		</dict>
@@ -66,7 +65,7 @@
 			<key>detail</key>
 			<string>PSListItemsController</string>
 			<key>label</key>
-			<string>Specify Blocked URLs...</string>
+			<string>Manage Blocked URLs...</string>
 			<key>action</key>
 			<string>launchBlockedURLOptions</string>
 		</dict>
@@ -77,31 +76,29 @@
 			<key>label</key>
 			<string>Support</string>
 			<key>footerText</key>
-			<string>Wish to donate? Donation link found on my twitter bio. Please click the above link to visit my twitter profile!</string>
+			<string>Donation link found in Twitter bio.</string>
 		</dict>
-
 		<dict>
 			<key>action</key>
 			<string>visitTwitter</string>
 			<key>cell</key>
 			<string>PSButtonCell</string>
 			<key>label</key>
-			<string>Follow me on Twitter @p2kdev</string>
+			<string>Follow @p2kdev on Twitter</string>
 			<key>icon</key>
 			<string>twitter.png</string>
 		</dict>
 
-			<dict>
+		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerAlignment</key>
 			<integer>1</integer>
 			<key>footerText</key>
-			<string>@2021 P2KDev (@p2kdev)</string>
+			<string>© 2025 P2KDev</string>
 		</dict>
 
 	</array>
-
 	<key>title</key>
 	<string>SafariBlocker</string>
 </dict>

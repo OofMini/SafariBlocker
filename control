@@ -1,9 +1,10 @@
 Package: com.p2kdev.safariblocker
 Name: SafariBlocker
 Depends: mobilesubstrate, preferenceloader, firmware (>= 15.0)
-Version: 1.2.0
+Version: 1.3.0
 Architecture: iphoneos-arm
-Description: Block New Tabs with Options!
-Maintainer: Mini <p2kdev@gmail.com>
+Description: Block new tabs and pop-ups in Safari with customizable whitelist/blacklist options.
+Maintainer: P2KDev <p2kdev@gmail.com>
 Author: P2KDev <p2kdev@gmail.com>
 Section: Tweaks
+Icon: file:///Library/PreferenceBundles/SafariBlocker.bundle/icon@2x.png

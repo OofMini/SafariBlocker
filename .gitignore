@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Theos
+.theos/
+obj/
+_
+*.deb
+.dragon/
+
+# Xcode
+*.mode1v3
+*.mode2v3
+*.pbxuser
+*.perspectivev3
+xcuserdata/
+
+# Build artifacts
+packages/

@@ -2,12 +2,9 @@
 #import <Preferences/PSListController.h>
 #include <objc/runtime.h>
 
-// Fix for missing headers in standard SDKs
+// Define interface for PSTextFieldSpecifier to expose setPlaceholder
 @interface PSTextFieldSpecifier : PSSpecifier
-@end
-
-@interface PSEditableTableCell : UITableViewCell
-@property (nonatomic, readonly) UITextField *textField;
+- (void)setPlaceholder:(NSString *)placeholder;
 @end
 
 @interface LSApplicationProxy : NSObject
@@ -76,12 +73,17 @@ NSString *prefFilePath;
             for (NSString *currData in self.dataList) {
                 if ([currData length] == 0) continue;
                 NSString *newDataLabel = [NSString stringWithFormat:@"#%d", index];
-                // Using PSSpecifier base class method which is safer
-                PSSpecifier *newData = [PSSpecifier preferenceSpecifierNamed:newDataLabel target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:PSEditTextCell edit:nil];
+                
+                // Use the defined interface to allow setPlaceholder
+                PSTextFieldSpecifier *newData = (PSTextFieldSpecifier *)[PSSpecifier preferenceSpecifierNamed:newDataLabel target:self set:@selector(setPreferenceValue:specifier:) get:@selector(readPreferenceValue:) detail:nil cell:PSEditTextCell edit:nil];
+                
                 [newData setProperty:newDataLabel forKey:@"key"];
                 [newData setProperty:@"com.p2kdev.safariblocker.settingschanged" forKey:@"PostNotification"];
                 [newData setProperty:@YES forKey:@"enabled"];
+                
+                // Now works because we defined the method in the interface above
                 [newData setPlaceholder:@"Enter url/domain"];
+                
                 [_specifiers addObject:newData];
                 index++;
             }
@@ -93,17 +95,23 @@ NSString *prefFilePath;
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     UITableViewCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
     
+    // Safely check for PSEditableTableCell
     if ([cell isKindOfClass:objc_getClass("PSEditableTableCell")]) {
-        PSEditableTableCell *editableCell = (PSEditableTableCell *)cell;
-        if (editableCell.textField) {
-            UIToolbar *keyboardDoneButtonView = [[UIToolbar alloc] init];
-            [keyboardDoneButtonView sizeToFit];
-            
-            UIBarButtonItem *flexBarButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
-            UIBarButtonItem *doneBarButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(dismissKeyboard:)];
-            
-            keyboardDoneButtonView.items = @[flexBarButton, doneBarButton];
-            ((UITextField *)editableCell.textField).inputAccessoryView = keyboardDoneButtonView;
+        // Cast to 'id' to dynamically access 'textField' without header dependency issues
+        id editableCell = cell;
+        
+        if ([editableCell respondsToSelector:@selector(textField)]) {
+            UITextField *textField = [editableCell textField];
+            if (textField) {
+                UIToolbar *keyboardDoneButtonView = [[UIToolbar alloc] init];
+                [keyboardDoneButtonView sizeToFit];
+                
+                UIBarButtonItem *flexBarButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
+                UIBarButtonItem *doneBarButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(dismissKeyboard:)];
+                
+                keyboardDoneButtonView.items = @[flexBarButton, doneBarButton];
+                textField.inputAccessoryView = keyboardDoneButtonView;
+            }
         }
     }
     return cell;

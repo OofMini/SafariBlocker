@@ -9,7 +9,10 @@ SafariBlocker_FILES = SBRootListController.m
 SafariBlocker_INSTALL_PATH = /Library/PreferenceBundles
 SafariBlocker_FRAMEWORKS = UIKit
 SafariBlocker_PRIVATE_FRAMEWORKS = Preferences
-SafariBlocker_CFLAGS = -fobjc-arc -Wno-deprecated-declarations
+SafariBlocker_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-error
+
+# Critical Fix: Tell the linker where to find Preferences.framework in the SDK
+SafariBlocker_LDFLAGS += -F$(SYSROOT)/System/Library/PrivateFrameworks
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 

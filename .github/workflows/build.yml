@@ -1,10 +1,7 @@
 name: Build SafariBlocker
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -23,8 +20,6 @@ jobs:
 
     - name: Build Rootless Package
       run: |
-        # If you have local libraries like libundirect, ensure they are handled here
-        # For now, we assume standard Theos setup or vendor libs
         make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
         
     - name: Upload Artifact
